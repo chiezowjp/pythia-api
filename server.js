@@ -82,18 +82,22 @@ app.get("/api/swe-test", (req, res) => {
 });
 
 
-// --- /api/planets（あなたのコードをそのまま） ---
+// --- /api/planets ---
 app.get("/api/planets", (req, res) => {
   try {
     const date = req.query.date;
+    if (!date) return res.status(400).json({ error: "date is required (YYYY-MM-DD)" });
+
     const dt = DateTime.fromISO(date, { zone: "Asia/Tokyo" }).set({ hour: 12 });
 
-    const jd = sweph.swe_julday(dt.year, dt.month, dt.day, 12, sweph.SE_GREG_CAL);
+    const jd = sweph.swe_julday(
+      dt.year, dt.month, dt.day,
+      12, sweph.SE_GREG_CAL
+    );
 
-    // ephe path は本番で要注意（後述）
-    sweph.swe_set_ephe_path("/mnt/c/swe-api/pythia-api/eph");
+    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
 
-    const planets = {
+    const planetIds = {
       Sun: sweph.SE_SUN,
       Moon: sweph.SE_MOON,
       Mercury: sweph.SE_MERCURY,
@@ -103,23 +107,27 @@ app.get("/api/planets", (req, res) => {
       Saturn: sweph.SE_SATURN,
       Uranus: sweph.SE_URANUS,
       Neptune: sweph.SE_NEPTUNE,
-      Pluto: sweph.SE_PLUTO
+      Pluto: sweph.SE_PLUTO,
     };
 
-    let result = {};
-    
+    const result = {};
+    for (const [name, id] of Object.entries(planetIds)) {
+      const r = sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH);
+      // 返りの型が違う環境でも lon を拾えるようにする
+      const lon =
+        (r && r.data && typeof r.data[0] === "number")
+          ? r.data[0]
+          : (r && typeof r.longitude === "number" ? r.longitude : null);
 
-for (const [name, id] of Object.entries(planets)) {
-  const r = await new Promise((resolve, reject) => {
-    sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH, (ret) => {
-      if (!ret) return reject("no return");
-      if (ret.error) return reject(ret.error);
-      resolve(ret);
-    }for (const [name, id] of Object.entries(planets)) {
-  const r = sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH);
-  result[name] = r.data[0];
-}
-  });
+      result[name] = lon;
+    }
+
+    return res.json(result);
+  } catch (e) {
+    return res.status(500).json({ error: String(e) });
+  }
+});
+
 
   const lon =
     typeof r.longitude === "number"
