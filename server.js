@@ -1,3 +1,8 @@
+app.get("/healthz", (req, res) => {
+  res.status(200).send("ok");
+});
+
+
 // 1. Import necessary packages
 const express = require("express");
 const cors = require("cors");
