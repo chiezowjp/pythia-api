@@ -144,10 +144,28 @@ app.get("/api/planets", (req, res) => {
     };
 
     let result = {};
-    for (const [name, id] of Object.entries(planets)) {
-      const r = sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH);
-      result[name] = r.data[0];
-    }
+
+for (const [name, id] of Object.entries(planets)) {
+  const r = await new Promise((resolve, reject) => {
+    sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH, (ret) => {
+      if (!ret) return reject("no return");
+      if (ret.error) return reject(ret.error);
+      resolve(ret);
+    });
+  });
+
+  const lon =
+    typeof r.longitude === "number"
+      ? r.longitude
+      : (r.data && typeof r.data[0] === "number" ? r.data[0] : null);
+
+  if (typeof lon !== "number") {
+    throw new Error(`invalid result for ${name}`);
+  }
+
+  result[name] = { lon, retro: false };
+}
+
 
     return res.json(result);
   } catch (e) {
