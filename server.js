@@ -12,9 +12,7 @@ app.use((req, res, next) => {
 
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
-// 切り分け用：すべて返す（診断中だけ）
-app.use((req, res) => res.status(200).send("reach-ok"));
-// ===================
+
 
 // ここから下に他の require を置いてOK（※まだ診断中なので実行されても問題ない）
 
