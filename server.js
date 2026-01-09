@@ -32,9 +32,58 @@ app.use(express.json());
 
 // --- /api/swe-test（既存の中身はこの中に戻す） ---
 app.get("/api/swe-test", (req, res) => {
-  // ここに元の swe-test の処理を書く
-  res.json({ ok: true });
+  try {
+    const now = DateTime.utc();
+    const jd = sweph.swe_julday(
+      now.year,
+      now.month,
+      now.day,
+      now.hour + now.minute / 60 + now.second / 3600,
+      sweph.SE_GREG_CAL
+    );
+
+    // ephフォルダを明示（Railwayでも動くように相対パス）
+    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
+
+    // swisseph は callback で返る
+    sweph.swe_calc_ut(jd, sweph.SE_SUN, sweph.SEFLG_SWIEPH, (ret) => {
+      if (!ret) return res.status(500).json({ ok: false, error: "No return from swe_calc_ut" });
+      if (ret.error) return res.status(500).json({ ok: false, error: ret.error });
+
+      // ライブラリの返り形が環境で違うことがあるので両対応
+      const lon =
+        typeof ret.longitude === "number"
+          ? ret.longitude
+          : (ret.data && typeof ret.data[0] === "number" ? ret.data[0] : null);
+
+      const lat =
+        typeof ret.latitude === "number"
+          ? ret.latitude
+          : (ret.data && typeof ret.data[1] === "number" ? ret.data[1] : null);
+
+      const dist =
+        typeof ret.distance === "number"
+          ? ret.distance
+          : (ret.data && typeof ret.data[2] === "number" ? ret.data[2] : null);
+
+      if (typeof lon !== "number") {
+        return res.status(500).json({ ok: false, error: "Unexpected swe_calc_ut return shape", ret });
+      }
+
+      return res.json({
+        ok: true,
+        utc: now.toISO(),
+        sun_lon: lon,
+        sun_lat: lat,
+        distance: dist,
+        rflag: ret.rflag,
+      });
+    });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
 });
+
 
 // --- GAS 本番接続用：出生図エフェメリスAPI ---
 app.post("/api/ephemeris", async (req, res) => {
