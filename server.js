@@ -107,6 +107,7 @@ app.get("/api/planets", (req, res) => {
     };
 
     let result = {};
+    
 
 for (const [name, id] of Object.entries(planets)) {
   const r = await new Promise((resolve, reject) => {
@@ -114,7 +115,10 @@ for (const [name, id] of Object.entries(planets)) {
       if (!ret) return reject("no return");
       if (ret.error) return reject(ret.error);
       resolve(ret);
-    });
+    }for (const [name, id] of Object.entries(planets)) {
+  const r = sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH);
+  result[name] = r.data[0];
+}
   });
 
   const lon =
