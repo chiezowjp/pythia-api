@@ -205,7 +205,55 @@ app.get("/api/swe-test", (req, res) => {
     return res.status(500).json({ ok: false, error: String(e) });
   }
 });
-    
+
+app.post("/api/ephemeris", async (req, res) => {
+  try {
+    const {
+      date,             // "YYYY-MM-DD"
+      time = "12:00",   // "HH:MM"
+      tz = "Asia/Tokyo",
+      lat,
+      lon,
+      houseSystem = "Placidus",
+      zodiacType = "tropical",
+    } = req.body || {};
+
+    if (!date) return res.status(400).json({ error: "date is required" });
+
+    // いったん lat/lon は必須にしない（後でhouses計算で必要になる）
+    // if (lat == null || lon == null) return res.status(400).json({ error: "lat/lon is required" });
+
+    // 時刻をUTに変換するのは後で。まずは動く優先で「その日の12:00 JST」を使う
+    const dt = DateTime.fromISO(date, { zone: tz }).set({
+      hour: Number(String(time).split(":")[0] || 12),
+      minute: Number(String(time).split(":")[1] || 0),
+      second: 0,
+    });
+
+    // swisseph は UT 基準が基本なのでUTCにしてJD作成
+    const utc = dt.toUTC();
+    const jd = sweph.swe_julday(
+      utc.year,
+      utc.month,
+      utc.day,
+      utc.hour + utc.minute / 60 + utc.second / 3600,
+      sweph.SE_GREG_CAL
+    );
+
+    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
+
+    const planetIds = {
+      Sun: sweph.SE_SUN,
+      Moon: sweph.SE_MOON,
+      Mercury: sweph.SE_MERCURY,
+      Venus: sweph.SE_VENUS,
+      Mars: sweph.SE_MARS,
+      Jupiter: sweph.SE_JUPITER,
+      Saturn: sweph.SE_SATURN,
+      Uranus: sweph.SE_URANUS,
+      Neptune: sweph.SE_NEPTUNE,
+      Pluto: sweph.SE_PLU_
+
 
 // 4. MariaDB Connection Pool
 // Use the connection details provided to connect to your database.
