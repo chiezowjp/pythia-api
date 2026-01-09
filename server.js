@@ -21,6 +21,20 @@ const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 // 2. Initialize the Express app
 const app = express();
 
+// ====== DEBUG: request reach check ======
+app.use((req, res, next) => {
+  console.log("REQ:", req.method, req.url);
+  next();
+});
+
+app.get("/healthz", (req, res) => res.status(200).send("ok"));
+
+// いったん全リクエストに必ず返す（切り分け用）
+// ※この行は他のルートより下に置く
+app.use((req, res) => res.status(200).send("reach-ok"));
+// =======================================
+
+
 // 3. Middleware setup
 app.use(cors()); // Enable Cross-Origin Resource Sharing for your React app
 app.use(express.json()); // Enable the server to parse JSON request bodies
@@ -1302,6 +1316,10 @@ app.post("/api/query", async (req, res) => {
 // 6. Start the server
 const PORT = process.env.PORT || 8080;
 
+console.log("ENV PORT =", process.env.PORT);
+console.log("LISTEN PORT =", PORT);
+
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 
@@ -1313,4 +1331,8 @@ app.listen(PORT, "0.0.0.0", () => {
     console.log("Skipping chart recalculation (DB disabled).");
   }
 });
+
+console.log("ENV PORT =", process.env.PORT);
+console.log("LISTEN PORT =", PORT);
+
   
