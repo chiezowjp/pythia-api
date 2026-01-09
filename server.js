@@ -1295,9 +1295,9 @@ app.post("/api/query", async (req, res) => {
 // 6. Start the server
 // 6. Start the server
 // 6. Start the server
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 
   if (pool) {
@@ -1308,5 +1308,4 @@ app.listen(PORT, () => {
     console.log("Skipping chart recalculation (DB disabled).");
   }
 });
-
   
