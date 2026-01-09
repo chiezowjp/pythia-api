@@ -27,19 +27,60 @@ const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 
 // 3. Middleware setup
-app.use(cors()); // Enable Cross-Origin Resource Sharing for your React app
-app.use(express.json()); // Enable the server to parse JSON request bodies
+app.use(cors());
+app.use(express.json());
+
+// --- /api/swe-test（既存の中身はこの中に戻す） ---
 app.get("/api/swe-test", (req, res) => {
+  // ここに元の swe-test の処理を書く
+  res.json({ ok: true });
+});
+
+// --- GAS 本番接続用：出生図エフェメリスAPI ---
+app.post("/api/ephemeris", async (req, res) => {
+  try {
+    const {
+      date,
+      time,
+      tz = "Asia/Tokyo",
+      lat,
+      lon,
+      houseSystem = "Placidus",
+      zodiacType = "tropical"
+    } = req.body || {};
+
+    if (!date) return res.status(400).json({ error: "date is required" });
+    if (lat == null || lon == null) return res.status(400).json({ error: "lat/lon is required" });
+
+    const result = await computeEphemeris({ date, time, tz, lat, lon, houseSystem, zodiacType });
+
+    return res.json({
+      planets: result.planets,
+      houses: result.houses,
+      meta: {
+        hasBirthTime: !!time && time !== "00:00",
+        houseSystem,
+        zodiacType,
+        tz,
+        lat,
+        lon
+      }
+    });
+  } catch (e) {
+    console.error("ephemeris failed:", e);
+    return res.status(500).json({ error: "ephemeris failed" });
+  }
+});
+
+// --- /api/planets（あなたのコードをそのまま） ---
 app.get("/api/planets", (req, res) => {
   try {
     const date = req.query.date;
     const dt = DateTime.fromISO(date, { zone: "Asia/Tokyo" }).set({ hour: 12 });
 
-    const jd = sweph.swe_julday(
-      dt.year, dt.month, dt.day,
-      12, sweph.SE_GREG_CAL
-    );
+    const jd = sweph.swe_julday(dt.year, dt.month, dt.day, 12, sweph.SE_GREG_CAL);
 
+    // ephe path は本番で要注意（後述）
     sweph.swe_set_ephe_path("/mnt/c/swe-api/pythia-api/eph");
 
     const planets = {
@@ -56,29 +97,19 @@ app.get("/api/planets", (req, res) => {
     };
 
     let result = {};
-
     for (const [name, id] of Object.entries(planets)) {
       const r = sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH);
       result[name] = r.data[0];
     }
 
-    res.json(result);
+    return res.json(result);
   } catch (e) {
-    res.status(500).json({ error: String(e) });
+    return res.status(500).json({ error: String(e) });
   }
 });
-  try {
-    const now = DateTime.utc();
-    const jd = sweph.swe_julday(
-      now.year,
-      now.month,
-      now.day,
-      now.hour + now.minute / 60 + now.second / 3600,
-      sweph.SE_GREG_CAL
-    );
 
     // ephフォルダを明示（安定）
-    sweph.swe_set_ephe_path("/mnt/c/swe-api/pythia-api/eph");
+    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
 
     // swisseph は callback で返る
     sweph.swe_calc_ut(jd, sweph.SE_SUN, sweph.SEFLG_SWIEPH, (ret) => {
