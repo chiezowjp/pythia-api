@@ -1,6 +1,9 @@
 // 1. Import necessary packages
 const express = require("express");
 
+// 2. Initialize the Express app  ← これを最優先で上に上げる
+const app = express();
+
 // ====== DEBUG ======
 app.use((req, res, next) => {
   console.log("REQ:", req.method, req.url);
@@ -9,9 +12,11 @@ app.use((req, res, next) => {
 
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
-// 切り分け用：すべて返す
+// 切り分け用：すべて返す（診断中だけ）
 app.use((req, res) => res.status(200).send("reach-ok"));
 // ===================
+
+// ここから下に他の require を置いてOK（※まだ診断中なので実行されても問題ない）
 
 const cors = require("cors");
 const fetch = require("node-fetch"); // Use node-fetch for making requests in Node.js
@@ -26,21 +31,6 @@ const supabaseUrl = "https://dldezknthsmgskwvhqtk.supabase.co";
 const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-// 2. Initialize the Express app
-const app = express();
-
-// ====== DEBUG: request reach check ======
-app.use((req, res, next) => {
-  console.log("REQ:", req.method, req.url);
-  next();
-});
-
-app.get("/healthz", (req, res) => res.status(200).send("ok"));
-
-// いったん全リクエストに必ず返す（切り分け用）
-// ※この行は他のルートより下に置く
-app.use((req, res) => res.status(200).send("reach-ok"));
-// =======================================
 
 
 // 3. Middleware setup
