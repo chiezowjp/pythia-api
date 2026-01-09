@@ -82,43 +82,6 @@ app.get("/api/swe-test", (req, res) => {
 });
 
 
-
-// --- GAS 本番接続用：出生図エフェメリスAPI ---
-app.post("/api/ephemeris", async (req, res) => {
-  try {
-    const {
-      date,
-      time,
-      tz = "Asia/Tokyo",
-      lat,
-      lon,
-      houseSystem = "Placidus",
-      zodiacType = "tropical"
-    } = req.body || {};
-
-    if (!date) return res.status(400).json({ error: "date is required" });
-    if (lat == null || lon == null) return res.status(400).json({ error: "lat/lon is required" });
-
-    const result = await computeEphemeris({ date, time, tz, lat, lon, houseSystem, zodiacType });
-
-    return res.json({
-      planets: result.planets,
-      houses: result.houses,
-      meta: {
-        hasBirthTime: !!time && time !== "00:00",
-        houseSystem,
-        zodiacType,
-        tz,
-        lat,
-        lon
-      }
-    });
-  } catch (e) {
-    console.error("ephemeris failed:", e);
-    return res.status(500).json({ error: "ephemeris failed" });
-  }
-});
-
 // --- /api/planets（あなたのコードをそのまま） ---
 app.get("/api/planets", (req, res) => {
   try {
@@ -227,8 +190,8 @@ app.get("/api/swe-test", (req, res) => {
 app.post("/api/ephemeris", async (req, res) => {
   try {
     const {
-      date,             // "YYYY-MM-DD"
-      time = "12:00",   // "HH:MM"
+      date,
+      time = "12:00",
       tz = "Asia/Tokyo",
       lat,
       lon,
@@ -238,17 +201,12 @@ app.post("/api/ephemeris", async (req, res) => {
 
     if (!date) return res.status(400).json({ error: "date is required" });
 
-    // いったん lat/lon は必須にしない（後でhouses計算で必要になる）
-    // if (lat == null || lon == null) return res.status(400).json({ error: "lat/lon is required" });
-
-    // 時刻をUTに変換するのは後で。まずは動く優先で「その日の12:00 JST」を使う
     const dt = DateTime.fromISO(date, { zone: tz }).set({
-      hour: Number(String(time).split(":")[0] || 12),
-      minute: Number(String(time).split(":")[1] || 0),
+      hour: Number(time.split(":")[0] || 12),
+      minute: Number(time.split(":")[1] || 0),
       second: 0,
     });
 
-    // swisseph は UT 基準が基本なのでUTCにしてJD作成
     const utc = dt.toUTC();
     const jd = sweph.swe_julday(
       utc.year,
@@ -270,8 +228,39 @@ app.post("/api/ephemeris", async (req, res) => {
       Saturn: sweph.SE_SATURN,
       Uranus: sweph.SE_URANUS,
       Neptune: sweph.SE_NEPTUNE,
-      Pluto: sweph.SE_PLU_
+      Pluto: sweph.SE_PLUTO,
+    };
 
+    const planets = {};
+
+    for (const [name, id] of Object.entries(planetIds)) {
+      const r = await new Promise((resolve, reject) => {
+        sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH, (ret) => {
+          if (!ret) return reject("no return");
+          if (ret.error) return reject(ret.error);
+          resolve(ret);
+        });
+      });
+
+      const lon =
+        typeof r.longitude === "number"
+          ? r.longitude
+          : r.data?.[0];
+
+      planets[name] = { lon };
+    }
+
+    return res.json({
+      planets,
+      houses: {},
+      meta: { tz, houseSystem, zodiacType, lat, lon }
+    });
+
+  } catch (e) {
+    console.error("ephemeris failed:", e);
+    return res.status(500).json({ error: String(e) });
+  }
+});
 
 // 4. MariaDB Connection Pool
 // Use the connection details provided to connect to your database.
