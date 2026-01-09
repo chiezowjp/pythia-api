@@ -15,7 +15,6 @@ const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // 2. Initialize the Express app
 const app = express();
-const PORT = process.env.PORT || 3002; // Use a port from .env or default to 3002
 
 // 3. Middleware setup
 app.use(cors()); // Enable Cross-Origin Resource Sharing for your React app
@@ -1296,21 +1295,20 @@ app.post("/api/query", async (req, res) => {
 // 6. Start the server
 // 6. Start the server
 // 6. Start the server
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3002;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
-});
 
   // Call the recalculation function immediately after the server starts.
   // It will run in the background and not block the server from accepting requests.
   if (pool) {
-  Promise.resolve()
-    .then(() => recalculateAllChartsOnStartup())
-    .catch(e => console.error("recalc failed:", e));
-} else {
-  console.log("Skipping chart recalculation (DB disabled).");
-}
+    Promise.resolve()
+      .then(() => recalculateAllChartsOnStartup())
+      .catch(e => console.error("recalc failed:", e));
+  } else {
+    console.log("Skipping chart recalculation (DB disabled).");
+  }
 });
 
   
