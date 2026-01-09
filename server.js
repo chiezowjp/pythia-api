@@ -1296,10 +1296,11 @@ app.post("/api/query", async (req, res) => {
 // 6. Start the server
 // 6. Start the server
 // 6. Start the server
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
 
   // Call the recalculation function immediately after the server starts.
   // It will run in the background and not block the server from accepting requests.
