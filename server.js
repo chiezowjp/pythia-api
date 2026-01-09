@@ -1,10 +1,18 @@
-app.get("/healthz", (req, res) => {
-  res.status(200).send("ok");
-});
-
-
 // 1. Import necessary packages
 const express = require("express");
+
+// ====== DEBUG ======
+app.use((req, res, next) => {
+  console.log("REQ:", req.method, req.url);
+  next();
+});
+
+app.get("/healthz", (req, res) => res.status(200).send("ok"));
+
+// 切り分け用：すべて返す
+app.use((req, res) => res.status(200).send("reach-ok"));
+// ===================
+
 const cors = require("cors");
 const fetch = require("node-fetch"); // Use node-fetch for making requests in Node.js
 const axios = require("axios");
