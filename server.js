@@ -42,15 +42,12 @@ app.get("/api/swe-test", (req, res) => {
       sweph.SE_GREG_CAL
     );
 
-    // ephフォルダを明示（Railwayでも動くように相対パス）
     sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
 
-    // swisseph は callback で返る
     sweph.swe_calc_ut(jd, sweph.SE_SUN, sweph.SEFLG_SWIEPH, (ret) => {
       if (!ret) return res.status(500).json({ ok: false, error: "No return from swe_calc_ut" });
       if (ret.error) return res.status(500).json({ ok: false, error: ret.error });
 
-      // ライブラリの返り形が環境で違うことがあるので両対応
       const lon =
         typeof ret.longitude === "number"
           ? ret.longitude
@@ -83,6 +80,7 @@ app.get("/api/swe-test", (req, res) => {
     return res.status(500).json({ ok: false, error: String(e) });
   }
 });
+
 
 
 // --- GAS 本番接続用：出生図エフェメリスAPI ---
@@ -157,32 +155,57 @@ app.get("/api/planets", (req, res) => {
   }
 });
 
-    // ephフォルダを明示（安定）
+// --- /api/swe-test ---
+app.get("/api/swe-test", (req, res) => {
+  try {
+    const now = DateTime.utc();
+    const jd = sweph.swe_julday(
+      now.year,
+      now.month,
+      now.day,
+      now.hour + now.minute / 60 + now.second / 3600,
+      sweph.SE_GREG_CAL
+    );
+
     sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
 
-    // swisseph は callback で返る
     sweph.swe_calc_ut(jd, sweph.SE_SUN, sweph.SEFLG_SWIEPH, (ret) => {
       if (!ret) return res.status(500).json({ ok: false, error: "No return from swe_calc_ut" });
       if (ret.error) return res.status(500).json({ ok: false, error: ret.error });
 
-      // ✅ このswissephは longitude 形式で返す
-      if (typeof ret.longitude !== "number") {
+      const lon =
+        typeof ret.longitude === "number"
+          ? ret.longitude
+          : (ret.data && typeof ret.data[0] === "number" ? ret.data[0] : null);
+
+      const lat =
+        typeof ret.latitude === "number"
+          ? ret.latitude
+          : (ret.data && typeof ret.data[1] === "number" ? ret.data[1] : null);
+
+      const dist =
+        typeof ret.distance === "number"
+          ? ret.distance
+          : (ret.data && typeof ret.data[2] === "number" ? ret.data[2] : null);
+
+      if (typeof lon !== "number") {
         return res.status(500).json({ ok: false, error: "Unexpected swe_calc_ut return shape", ret });
       }
 
-      res.json({
+      return res.json({
         ok: true,
         utc: now.toISO(),
-        sun_lon: ret.longitude,
-        sun_lat: ret.latitude,
-        distance: ret.distance,
+        sun_lon: lon,
+        sun_lat: lat,
+        distance: dist,
         rflag: ret.rflag,
       });
     });
   } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
+    return res.status(500).json({ ok: false, error: String(e) });
   }
 });
+    
 
 // 4. MariaDB Connection Pool
 // Use the connection details provided to connect to your database.
@@ -1084,7 +1107,7 @@ function findAspectHitsForDay(dateISO, transitLons, natalLons) {
 app.post("/api/important-months", async (req, res) => {
   try {
     // eph path (あなたの環境に合わせて固定)
-    sweph.swe_set_ephe_path("/mnt/c/swe-api/pythia-api/eph");
+    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
 
     const year = Number(req.body?.year);
     const birthIso = req.body?.birth?.iso;
