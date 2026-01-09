@@ -4,11 +4,6 @@ const express = require("express");
 // 2. Initialize the Express app  ← これを最優先で上に上げる
 const app = express();
 
-// ====== DEBUG ======
-app.use((req, res, next) => {
-  console.log("REQ:", req.method, req.url);
-  next();
-});
 
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
@@ -1312,9 +1307,6 @@ app.post("/api/query", async (req, res) => {
 // 6. Start the server
 const PORT = process.env.PORT || 8080;
 
-console.log("ENV PORT =", process.env.PORT);
-console.log("LISTEN PORT =", PORT);
-
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
@@ -1327,8 +1319,3 @@ app.listen(PORT, "0.0.0.0", () => {
     console.log("Skipping chart recalculation (DB disabled).");
   }
 });
-
-console.log("ENV PORT =", process.env.PORT);
-console.log("LISTEN PORT =", PORT);
-
-  
