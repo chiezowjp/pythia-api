@@ -129,25 +129,6 @@ app.get("/api/planets", (req, res) => {
 });
 
 
-  const lon =
-    typeof r.longitude === "number"
-      ? r.longitude
-      : (r.data && typeof r.data[0] === "number" ? r.data[0] : null);
-
-  if (typeof lon !== "number") {
-    throw new Error(`invalid result for ${name}`);
-  }
-
-  result[name] = { lon, retro: false };
-}
-
-
-    return res.json(result);
-  } catch (e) {
-    return res.status(500).json({ error: String(e) });
-  }
-});
-
 // --- /api/swe-test ---
 app.get("/api/swe-test", (req, res) => {
   try {
@@ -199,6 +180,7 @@ app.get("/api/swe-test", (req, res) => {
   }
 });
 
+// --- GAS 本番接続用：出生図エフェメリスAPI ---
 app.post("/api/ephemeris", async (req, res) => {
   try {
     const {
@@ -214,8 +196,8 @@ app.post("/api/ephemeris", async (req, res) => {
     if (!date) return res.status(400).json({ error: "date is required" });
 
     const dt = DateTime.fromISO(date, { zone: tz }).set({
-      hour: Number(time.split(":")[0] || 12),
-      minute: Number(time.split(":")[1] || 0),
+      hour: Number(String(time).split(":")[0] || 12),
+      minute: Number(String(time).split(":")[1] || 0),
       second: 0,
     });
 
@@ -244,22 +226,22 @@ app.post("/api/ephemeris", async (req, res) => {
     };
 
     const planets = {};
-
     for (const [name, id] of Object.entries(planetIds)) {
-      const r = await new Promise((resolve, reject) => {
-        sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH, (ret) => {
-          if (!ret) return reject("no return");
-          if (ret.error) return reject(ret.error);
-          resolve(ret);
+      const ret = await new Promise((resolve, reject) => {
+        sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH, (r) => {
+          if (!r) return reject("no return");
+          if (r.error) return reject(r.error);
+          resolve(r);
         });
       });
 
-      const lon =
-        typeof r.longitude === "number"
-          ? r.longitude
-          : r.data?.[0];
+      const lonVal =
+        typeof ret.longitude === "number"
+          ? ret.longitude
+          : (ret.data && typeof ret.data[0] === "number" ? ret.data[0] : null);
 
-      planets[name] = { lon };
+      if (typeof lonVal !== "number") throw new Error(`invalid result for ${name}`);
+      planets[name] = { lon: lonVal };
     }
 
     return res.json({
@@ -267,12 +249,12 @@ app.post("/api/ephemeris", async (req, res) => {
       houses: {},
       meta: { tz, houseSystem, zodiacType, lat, lon }
     });
-
   } catch (e) {
     console.error("ephemeris failed:", e);
     return res.status(500).json({ error: String(e) });
   }
 });
+
 
 // 4. MariaDB Connection Pool
 // Use the connection details provided to connect to your database.
