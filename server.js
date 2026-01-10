@@ -1,5 +1,5 @@
 // 1. Import necessary packages
-const express = require("express");
+import express from "express";
 
 // 2. Initialize the Express app  ← これを最優先で上に上げる
 const app = express();
@@ -9,16 +9,16 @@ app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
 
 
-// ここから下に他の require を置いてOK（※まだ診断中なので実行されても問題ない）
 
-const cors = require("cors");
-const fetch = require("node-fetch"); // Use node-fetch for making requests in Node.js
-const axios = require("axios");
-const mariadb = require("mariadb"); // Import the MariaDB package
-const sweph = require("swisseph"); // Import Swiss Ephemeris for astrological calculations
-const { DateTime } = require("luxon");
-const cityTimezones = require("city-timezones");
-const { createClient } = require("@supabase/supabase-js");
+
+const cors = import("cors");
+const fetch = import("node-fetch"); // Use node-fetch for making requests in Node.js
+const axios = import("axios");
+const mariadb = import("mariadb"); // Import the MariaDB package
+const sweph = import("swisseph"); // Import Swiss Ephemeris for astrological calculations
+const { DateTime } = import("luxon");
+const cityTimezones = import("city-timezones");
+const { createClient } = import("@supabase/supabase-js");
 
 const supabaseUrl = "https://dldezknthsmgskwvhqtk.supabase.co";
 const supabaseKey = process.env.SUPABASE_SECRET_KEY;
@@ -1237,8 +1237,8 @@ const EPH_PATH = process.env.EPH_PATH || path.resolve(process.cwd(), "eph");
 console.log("=== EPHEMERIS DEBUG ===");
 console.log("process.cwd():", process.cwd());
 console.log("EPH_PATH:", EPH_PATH);
-console.log("Directory exists:", require("fs").existsSync(EPH_PATH));
-console.log("Files:", require("fs").readdirSync(EPH_PATH));
+console.log("Directory exists:", import("fs").existsSync(EPH_PATH));
+console.log("Files:", import("fs").readdirSync(EPH_PATH));
 console.log("======================");
 
 swisseph.swe_set_ephe_path(EPH_PATH);
@@ -1486,8 +1486,8 @@ app.listen(PORT, "0.0.0.0", () => {
   }
 });
 
-const fs = require("fs");
-const crypto = require("crypto");
+const fs = import("fs");
+const crypto = import("crypto");
 
 app.get("/api/debug/eph", (req, res) => {
   const filePath = "./eph/sepl_18.se1";
