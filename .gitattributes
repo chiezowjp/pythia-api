@@ -1,0 +1,4 @@
+eph/*.se1 -text -working-tree-encoding
+eph/*.se2 -text -working-tree-encoding
+eph/*.se0 -text -working-tree-encoding
+eph/*.swe -text -working-tree-encoding
