@@ -1,13 +1,11 @@
-// server.js (ESM)
-
-// ===== 1) imports（全部ここに集約）=====
+// ===== server.js (TOP) ここから =====
 import express from "express";
 import cors from "cors";
-
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
+import fetch from "node-fetch";
 import axios from "axios";
 import mariadb from "mariadb";
 import sweph from "swisseph";
@@ -15,33 +13,58 @@ import { DateTime } from "luxon";
 import cityTimezones from "city-timezones";
 import { createClient } from "@supabase/supabase-js";
 
-// ===== 2) __dirname（ESM対応）=====
+// --- __dirname 相当 ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ===== 3) Express 初期化（最優先）=====
+// --- Express app ---
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- health ---
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
-// ===== 4) Ephemeris path（ここが「本当に読みに行く場所」）=====
-const EPH_DIR = process.env.EPHE_PATH
-  ? path.resolve(process.env.EPHE_PATH)
-  : path.join(__dirname, "eph");
+// --- Ephemeris path (絶対パスで固定) ---
+const EPH_DIR = path.join(__dirname, "eph");
+const EPH_FILE = path.join(EPH_DIR, "sepl_18.se1");
 
 console.log("[eph] EPH_DIR =", EPH_DIR);
-console.log("[eph] sepl_18.se1 exists =", fs.existsSync(path.join(EPH_DIR, "sepl_18.se1")));
-console.log("[eph] seas_18.se1 exists =", fs.existsSync(path.join(EPH_DIR, "seas_18.se1")));
-console.log("[eph] semo_18.se1 exists =", fs.existsSync(path.join(EPH_DIR, "semo_18.se1")));
+console.log("[eph] EPH_FILE =", EPH_FILE);
+console.log("[eph] exists =", fs.existsSync(EPH_FILE));
+if (fs.existsSync(EPH_FILE)) {
+  const stat = fs.statSync(EPH_FILE);
+  console.log("[eph] size =", stat.size);
+}
 
-sweph.swe_set_ephe_path(EPH_DIR);
+// sweph に「ディレクトリ」を渡す（ファイルじゃなくフォルダ）
+sweph.swe_set_ephe_path(process.env.EPHE_PATH || EPH_DIR);
 
-// ===== 5) Supabase（そのまま）=====
+// --- Supabase ---
 const supabaseUrl = "https://dldezknthsmgskwvhqtk.supabase.co";
 const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+// --- debug: eph inspection (これが /api/debug/eph ) ---
+app.get("/api/debug/eph", (req, res) => {
+  try {
+    const exists = fs.existsSync(EPH_FILE);
+    const size = exists ? fs.statSync(EPH_FILE).size : 0;
+    const head32 = exists ? fs.readFileSync(EPH_FILE).subarray(0, 32) : Buffer.alloc(0);
+    res.json({
+      exists,
+      ephDir: EPH_DIR,
+      ephFile: EPH_FILE,
+      size,
+      head32_hex: head32.toString("hex"),
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// ===== server.js (TOP) ここまで =====
+
 
 
 
@@ -173,7 +196,7 @@ app.post("/api/ephemeris", async (req, res) => {
       sweph.SE_GREG_CAL
     );
 
-    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
+   
 
     const planetIds = {
       Sun: sweph.SE_SUN,
@@ -1118,8 +1141,7 @@ function findAspectHitsForDay(dateISO, transitLons, natalLons) {
 // }
 app.post("/api/important-months", async (req, res) => {
   try {
-    // eph path (あなたの環境に合わせて固定)
-    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
+   
 
     const year = Number(req.body?.year);
     const birthIso = req.body?.birth?.iso;
