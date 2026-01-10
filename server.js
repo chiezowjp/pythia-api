@@ -1472,8 +1472,8 @@ app.listen(PORT, "0.0.0.0", () => {
   }
 });
 
-import fs from "fs";
-import crypto from "crypto";
+const fs = require("fs");
+const crypto = require("crypto");
 
 app.get("/api/debug/eph", (req, res) => {
   const filePath = "./eph/sepl_18.se1";
