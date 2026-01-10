@@ -1,85 +1,48 @@
-// 1. Import necessary packages
+// server.js (ESM)
+
+// ===== 1) imports（全部ここに集約）=====
 import express from "express";
+import cors from "cors";
 
-// 2. Initialize the Express app  ← これを最優先で上に上げる
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
+import axios from "axios";
+import mariadb from "mariadb";
+import sweph from "swisseph";
+import { DateTime } from "luxon";
+import cityTimezones from "city-timezones";
+import { createClient } from "@supabase/supabase-js";
+
+// ===== 2) __dirname（ESM対応）=====
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ===== 3) Express 初期化（最優先）=====
 const app = express();
-
+app.use(cors());
+app.use(express.json());
 
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 
+// ===== 4) Ephemeris path（ここが「本当に読みに行く場所」）=====
+const EPH_DIR = process.env.EPHE_PATH
+  ? path.resolve(process.env.EPHE_PATH)
+  : path.join(__dirname, "eph");
 
+console.log("[eph] EPH_DIR =", EPH_DIR);
+console.log("[eph] sepl_18.se1 exists =", fs.existsSync(path.join(EPH_DIR, "sepl_18.se1")));
+console.log("[eph] seas_18.se1 exists =", fs.existsSync(path.join(EPH_DIR, "seas_18.se1")));
+console.log("[eph] semo_18.se1 exists =", fs.existsSync(path.join(EPH_DIR, "semo_18.se1")));
 
+sweph.swe_set_ephe_path(EPH_DIR);
 
-
-const cors = import("cors");
-const fetch = import("node-fetch"); // Use node-fetch for making requests in Node.js
-const axios = import("axios");
-const mariadb = import("mariadb"); // Import the MariaDB package
-const sweph = import("swisseph"); // Import Swiss Ephemeris for astrological calculations
-const { DateTime } = import("luxon");
-const cityTimezones = import("city-timezones");
-const { createClient } = import("@supabase/supabase-js");
-
+// ===== 5) Supabase（そのまま）=====
 const supabaseUrl = "https://dldezknthsmgskwvhqtk.supabase.co";
 const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 const supabase = supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-
-
-// 3. Middleware setup
-app.use(cors());
-app.use(express.json());
-
-// --- /api/swe-test（既存の中身はこの中に戻す） ---
-app.get("/api/swe-test", (req, res) => {
-  try {
-    const now = DateTime.utc();
-    const jd = sweph.swe_julday(
-      now.year,
-      now.month,
-      now.day,
-      now.hour + now.minute / 60 + now.second / 3600,
-      sweph.SE_GREG_CAL
-    );
-
-    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
-
-    sweph.swe_calc_ut(jd, sweph.SE_SUN, sweph.SEFLG_SWIEPH, (ret) => {
-      if (!ret) return res.status(500).json({ ok: false, error: "No return from swe_calc_ut" });
-      if (ret.error) return res.status(500).json({ ok: false, error: ret.error });
-
-      const lon =
-        typeof ret.longitude === "number"
-          ? ret.longitude
-          : (ret.data && typeof ret.data[0] === "number" ? ret.data[0] : null);
-
-      const lat =
-        typeof ret.latitude === "number"
-          ? ret.latitude
-          : (ret.data && typeof ret.data[1] === "number" ? ret.data[1] : null);
-
-      const dist =
-        typeof ret.distance === "number"
-          ? ret.distance
-          : (ret.data && typeof ret.data[2] === "number" ? ret.data[2] : null);
-
-      if (typeof lon !== "number") {
-        return res.status(500).json({ ok: false, error: "Unexpected swe_calc_ut return shape", ret });
-      }
-
-      return res.json({
-        ok: true,
-        utc: now.toISO(),
-        sun_lon: lon,
-        sun_lat: lat,
-        distance: dist,
-        rflag: ret.rflag,
-      });
-    });
-  } catch (e) {
-    return res.status(500).json({ ok: false, error: String(e) });
-  }
-});
 
 
 // --- /api/planets ---
@@ -95,7 +58,7 @@ app.get("/api/planets", (req, res) => {
       12, sweph.SE_GREG_CAL
     );
 
-    sweph.swe_set_ephe_path(process.env.EPHE_PATH || "./eph");
+   
 
     const planetIds = {
       Sun: sweph.SE_SUN,
