@@ -1471,3 +1471,30 @@ app.listen(PORT, "0.0.0.0", () => {
     console.log("Skipping chart recalculation (DB disabled).");
   }
 });
+
+import fs from "fs";
+import crypto from "crypto";
+
+app.get("/api/debug/eph", (req, res) => {
+  const filePath = "./eph/sepl_18.se1";
+
+  try {
+    const stat = fs.statSync(filePath);
+    const data = fs.readFileSync(filePath);
+
+    const hash = crypto.createHash("sha256").update(data).digest("hex");
+    const head = data.slice(0, 32).toString("hex");
+
+    res.json({
+      exists: true,
+      size: stat.size,
+      sha256: hash,
+      head32_hex: head
+    });
+  } catch (e) {
+    res.json({
+      exists: false,
+      error: e.message
+    });
+  }
+});
