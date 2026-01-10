@@ -1229,6 +1229,20 @@ app.post("/api/important-months", async (req, res) => {
   }
 });
 
+import path from "path";
+import swisseph from "swisseph";
+
+const EPH_PATH = process.env.EPH_PATH || path.resolve(process.cwd(), "eph");
+
+console.log("=== EPHEMERIS DEBUG ===");
+console.log("process.cwd():", process.cwd());
+console.log("EPH_PATH:", EPH_PATH);
+console.log("Directory exists:", require("fs").existsSync(EPH_PATH));
+console.log("Files:", require("fs").readdirSync(EPH_PATH));
+console.log("======================");
+
+swisseph.swe_set_ephe_path(EPH_PATH);
+
 
 app.post("/api/query", async (req, res) => {
   const { authorization } = req.headers;
