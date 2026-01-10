@@ -1,16 +1,11 @@
-FROM node:20-bullseye
+FROM node:20
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y python3 make g++ \
-  && rm -rf /var/lib/apt/lists/*
-
-COPY package*.json ./
-RUN npm ci --omit=dev
-
 COPY . .
 
-ENV PORT=3002
-EXPOSE 3002
+RUN npm install
 
-CMD ["npm", "start"]
+EXPOSE 8080
+
+CMD ["node", "server.js"]
