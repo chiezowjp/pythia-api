@@ -1222,8 +1222,8 @@ const EPH_PATH = process.env.EPH_PATH || path.resolve(process.cwd(), "eph");
 console.log("=== EPHEMERIS DEBUG ===");
 console.log("process.cwd():", process.cwd());
 console.log("EPH_PATH:", EPH_PATH);
-console.log("Directory exists:", import("fs").existsSync(EPH_PATH));
-console.log("Files:", import("fs").readdirSync(EPH_PATH));
+console.log("Directory exists:", fs.existsSync(EPH_PATH));
+console.log("Files:", fs.readdirSync(EPH_PATH));
 console.log("======================");
 
 swisseph.swe_set_ephe_path(EPH_PATH);
