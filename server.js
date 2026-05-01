@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import crypto from "crypto";
 
 import fetch from "node-fetch";
 import axios from "axios";
@@ -1470,8 +1471,6 @@ app.listen(PORT, "0.0.0.0", () => {
   }
 });
 
-import fs from "fs";
-import crypto from "crypto";
 
 app.get("/api/debug/eph", (req, res) => {
   const filePath = "./eph/sepl_18.se1";
