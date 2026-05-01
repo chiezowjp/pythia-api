@@ -1214,7 +1214,6 @@ app.post("/api/important-months", async (req, res) => {
   }
 });
 
-import path from "path";
 import swisseph from "swisseph";
 
 const EPH_PATH = process.env.EPH_PATH || path.resolve(process.cwd(), "eph");
@@ -1471,8 +1470,8 @@ app.listen(PORT, "0.0.0.0", () => {
   }
 });
 
-const fs = import("fs");
-const crypto = import("crypto");
+import fs from "fs";
+import crypto from "crypto";
 
 app.get("/api/debug/eph", (req, res) => {
   const filePath = "./eph/sepl_18.se1";
