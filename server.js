@@ -97,6 +97,8 @@ app.get("/api/planets", (req, res) => {
       Pluto: sweph.SE_PLUTO,
     };
 
+    
+
     const result = {};
     for (const [name, id] of Object.entries(planetIds)) {
       const r = sweph.swe_calc_ut(jd, id, sweph.SEFLG_SWIEPH);
@@ -231,11 +233,28 @@ app.post("/api/ephemeris", async (req, res) => {
       planets[name] = { lon: lonVal };
     }
 
-    return res.json({
-      planets,
-      houses: {},
-      meta: { tz, houseSystem, zodiacType, lat, lon }
-    });
+    const housesResult = sweph.swe_houses(
+  jd,
+  Number(lat),
+  Number(lon),
+  houseSystem === "Placidus" ? "P" : "P"
+// ↓ 将来対応用
+// "Placidus" → "P"
+// "Koch" → "K" とかにできる
+);
+
+const houses = {
+  ascendant: housesResult.asc,
+  mc: housesResult.mc,
+  cusps: housesResult.house.slice(0, 12)
+};
+
+return res.json({
+  planets,
+  houses,
+  meta: { tz, houseSystem, zodiacType, lat, lon }
+});
+
   } catch (e) {
     console.error("ephemeris failed:", e);
     return res.status(500).json({ error: String(e) });
@@ -429,7 +448,7 @@ async function calculateChart(
   }
 
   // --- 2. Astrological Calculations using Swiss Ephemeris ---
-  sweph.swe_set_ephe_path(__dirname + "/ephe");
+
 
   const julianDayUT = sweph.swe_julday(
     utcTime.year,
