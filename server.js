@@ -75,13 +75,24 @@ app.get("/api/planets", (req, res) => {
     const date = req.query.date;
     if (!date) return res.status(400).json({ error: "date is required (YYYY-MM-DD)" });
 
-    const dt = DateTime.fromISO(date, { zone: "Asia/Tokyo" }).set({ hour: 12 });
+    const local = DateTime.fromISO(`${date}T${time}`, {
+  zone: tz || "Asia/Tokyo"
+});
 
-    const jd = sweph.swe_julday(
-      dt.year, dt.month, dt.day,
-      12, sweph.SE_GREG_CAL
-    );
+const utc = local.toUTC();
 
+const hourDecimal =
+  utc.hour +
+  utc.minute / 60 +
+  utc.second / 3600;
+
+const jd = sweph.swe_julday(
+  utc.year,
+  utc.month,
+  utc.day,
+  hourDecimal,
+  sweph.SE_GREG_CAL
+);
    
 
     const planetIds = {
